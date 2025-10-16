@@ -1,8 +1,7 @@
-# Core project metadata (PEP 621). Defines package info for UV, pip, PyPI, GitHub Packages.
 [project]
-name = "dev-template"
+name = "package-orchestrator"
 version = "0.1.0"
-description = "Development Template for any Python Project"
+description = "A package orchestrator for building Docker images from repositories with sequential scripts"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
@@ -15,14 +14,10 @@ classifiers = [
 dependencies = [
     "python-dotenv",
     "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "pyreadr>=0.5.0",
-    "pyarrow>=15.0.0",
-    "openpyxl>=3.0.0",
-    "pytz>=2023.3",
-    "loguru",
+    "pydantic-settings>=2.0.0"
 ]
-
+[project.scripts]
+package = "package_orchestrator.cli:main"
 [project.optional-dependencies]
 build = ["build>=1.0.0", "twine>=4.0.0"]
 dev = [
@@ -33,7 +28,6 @@ dev = [
     "pre-commit>=3.0.0",
     "docformatter>=1.7.7",
     "pydantic>=2.8.2",
-
 ]
 test = [
     "mypy>=1.11.0",
@@ -43,26 +37,24 @@ test = [
     "pytest-cov>=5.0.0",
     "pytest-mock>=3.0.0",
 ]
-
-#[project.scripts]
-#download_data = "scripts.download_data"
-
 [project.urls]
-"Homepage" = "https://github.com/your-username/dev-template"
-"Repository" = "https://github.com/your-username/dev-template"
-"Issues" = "https://github.com/your-username/dev-template/issues"
+"Homepage" = "https://github.com/JENO87/package-orchestrator"
+"Repository" = "https://github.com/JENO87/package-orchestrator"
+"Issues" = "https://github.com/JENO87/package-orchestrator/issues"
 
 [build-system]
 requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/dev_template/__init__.py"
+path = "src/package_orchestrator/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/package_orchestrator"]
 
 [tool.uv]
 package = true
 
-# Mypy config for strict type checking
 [tool.mypy]
 python_version = "3.13"
 strict = true
@@ -77,15 +69,10 @@ disallow_untyped_decorators = true
 disallow_any_generics = true
 no_implicit_reexport = true
 warn_return_any = true
-# Overrides for untyped modules
 [[tool.mypy.overrides]]
-module = ["dev_template.*"]
-ignore_missing_imports = true
-[[tool.mypy.overrides]]
-module = ["loguru"]
+module = ["package_orchestrator.*"]
 ignore_missing_imports = true
 
-# Pylint config
 [tool.pylint.messages_control]
 disable = [
     "import-error",
@@ -97,7 +84,6 @@ disable = [
 max-line-length = 120
 fail-under = 9.0
 
-# Ruff config for linting/formatting
 [tool.ruff]
 line-length = 120
 exclude = ["notebooks"]
@@ -109,9 +95,8 @@ ignore = [
     "D401",
 ]
 [tool.ruff.lint.isort]
-known-first-party = ["dev_template"]
+known-first-party = ["package_orchestrator"]
 combine-as-imports = true
-# Prefer | None over Optional[] for Python 3.10+
 force-single-line = false
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -119,9 +104,7 @@ convention = "numpy"
 [tool.pytest.ini_options]
 python_files = ["test_*.py"]
 testpaths = ["tests"]
-addopts = "--cov=dev_template --cov-report=xml"
+addopts = "--cov=package_orchestrator --cov-report=xml"
 
 [dependency-groups]
-test = [
-    "docformatter>=1.7.7",
-]
+test = ["docformatter>=1.7.7"]

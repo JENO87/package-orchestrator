@@ -1,13 +1,21 @@
-.PHONY: install-uv sync install test lint format-check type-check scan-deps build-package publish-package export build-docker-image tag-docker-image push-docker-image clean-docker-image pre-commit clean editable-install ci
+.PHONY: install-uv sync install test lint format-check type-check scan-deps build-package publish-package export build-docker-image tag-docker-image push-docker-image clean-docker-image pre-commit clean editable-install ci package
 
 # Variables
 SRC = src
+REGISTRY ?= ghcr.io/JENO87/package-orchestrator
+SERVICE_NAME ?= my-service
 
 help:
 	@powershell -Command "Get-Content Makefile | Select-String '^[a-zA-Z0-9_-]+:' | ForEach-Object { $$_.Line.Split(':')[0] } | Sort-Object | ForEach-Object { Write-Output $$_ }"
 
 install-uv:
 	pip install uv
+
+venv:
+	uv venv --python 3.13
+
+activate:
+	.\.venv\Scripts\Activate.ps1
 
 check-env:
 	@powershell -Command "Write-Output 'PYTHONPATH: $env:PYTHONPATH'; Write-Output 'Current Dir: $(pwd)'"
@@ -39,7 +47,7 @@ format-check:
 	uv run ruff format --diff .
 
 type-check:
-	uv run mypy ."
+	uv run mypy .
 
 mypy-paths:
 	uv run mypy --python-path . scripts
@@ -95,5 +103,6 @@ install-gh:
 setup-branch-protection:
 	@powershell -Command "$env:PYTHONPATH='$(SRC)'; uv run python -m scripts/setup_branch_protection.py"
 
-mock_script:
-	@uv run python -m scripts/mock_script.py
+# Package the repository using package_orchestrator CLI
+package:
+	@uv run python -m package_orchestrator package --registry $(REGISTRY) --service-name $(SERVICE_NAME)
