@@ -5,7 +5,7 @@ It builds a wheel if setup.py exists and uses run.py to execute sequential scrip
 """
 import subprocess
 import os
-from config import Config
+from package_orchestrator.config import Config
 from pathlib import Path
 
 def build_image(config: Config) -> str:

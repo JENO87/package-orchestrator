@@ -2,8 +2,8 @@ import os
 import shutil
 from unittest.mock import patch, MagicMock
 import pytest
-from builder import build_image
-from config import Config
+from package_orchestrator.builder import build_image
+from package_orchestrator.config import Config
 
 @pytest.fixture
 def temp_dir(tmp_path):

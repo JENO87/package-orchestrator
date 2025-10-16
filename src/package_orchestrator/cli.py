@@ -4,8 +4,8 @@ This module provides a command-line interface to package the current repository 
 and push it to any registry, focusing on repos with sequential scripts.
 """
 import argparse
-from builder import build_image
-from config import Config
+from package_orchestrator.builder import build_image
+from package_orchestrator.config import Config
 
 def main():
     """Entry point for the package-orchestrator CLI.

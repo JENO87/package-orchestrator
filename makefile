@@ -15,7 +15,7 @@ venv:
 	uv venv --python 3.13
 
 activate:
-	.\.venv\Scripts\Activate.ps1
+	@powershell -Command "& '.venv\Scripts\Activate.ps1'"
 
 check-env:
 	@powershell -Command "Write-Output 'PYTHONPATH: $env:PYTHONPATH'; Write-Output 'Current Dir: $(pwd)'"
