@@ -17,6 +17,9 @@ def main():
     parser.add_argument("--service-name", default="my-service", help="Name of the target service/image (default: my-service)")
     args = parser.parse_args()
 
+    # Normalize registry to lowercase
+    args.registry = args.registry.lower()
+
     # Create config from CLI args
     config = Config(
         package_registry_url=args.registry,
