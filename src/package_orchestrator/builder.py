@@ -4,6 +4,7 @@ This module packages the current repository into a Docker image and pushes it to
 if setup.py exists and uses run.py to execute sequential scripts.
 """
 
+import sys
 import os
 import subprocess
 from pathlib import Path
