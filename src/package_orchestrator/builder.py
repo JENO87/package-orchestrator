@@ -44,13 +44,13 @@ def build_image(config: Config) -> str:
     if not os.path.exists(f"{repo_dir}/run.py"):
         raise ValueError("run.py is required to execute the script sequence. Add it to your repo.")
     with open("Dockerfile", "w") as f:
-        f.write("FROM python:3.9-slim\n")
+        f.write("FROM python:3.11-slim\n")
         f.write("WORKDIR /app\n")
+        f.write("RUN apt-get update && apt-get install -y git\n")
         if os.path.exists("requirements.txt"):
             f.write("COPY requirements.txt .\n")
             f.write("RUN pip install --no-cache-dir -r requirements.txt\n")
         if wheel_path:
-            # Copy wheel to current directory to ensure it's in build context
             wheel_filename = os.path.basename(wheel_path)
             shutil.copy(wheel_path, wheel_filename)
             f.write(f"COPY {wheel_filename} .\n")
