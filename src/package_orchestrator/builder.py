@@ -6,11 +6,11 @@ if setup.py exists and uses run.py to execute sequential scripts.
 
 import sys
 import os
+import shutil
 import subprocess
 from pathlib import Path
-
+from typing import Optional
 from package_orchestrator.config import Config
-
 
 def build_image(config: Config) -> str:
     """Builds a Docker image from the current repository and pushes it to the package registry.
@@ -18,12 +18,10 @@ def build_image(config: Config) -> str:
     Args:
         config: Config object with registry and service details.
 
-    Returns
-    -------
+    Returns:
         str: The full image URI (e.g., 'ghcr.io/JENO87/package-orchestrator/my-service:latest').
 
-    Raises
-    ------
+    Raises:
         subprocess.CalledProcessError: If build or push fails.
         FileNotFoundError: If required files are missing.
         ValueError: If run.py is not found.
@@ -52,10 +50,13 @@ def build_image(config: Config) -> str:
             f.write("COPY requirements.txt .\n")
             f.write("RUN pip install --no-cache-dir -r requirements.txt\n")
         if wheel_path:
-            f.write(f"COPY {os.path.abspath(wheel_path)} .\n")  # Use absolute path
-            f.write(f"RUN pip install {os.path.basename(wheel_path)}\n")
+            # Copy wheel to current directory to ensure it's in build context
+            wheel_filename = os.path.basename(wheel_path)
+            shutil.copy(wheel_path, wheel_filename)
+            f.write(f"COPY {wheel_filename} .\n")
+            f.write(f"RUN pip install {wheel_filename}\n")
         f.write("COPY run.py .\n")
-        f.write('CMD ["python", "run.py"]\n')
+        f.write("CMD [\"python\", \"run.py\"]\n")
 
     # Build and push Docker image
     image_uri = f"{config.package_registry_url}/{config.service_name}:latest"
