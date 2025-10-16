@@ -11,6 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 from package_orchestrator.config import Config
+from loguru import logger
 
 def build_image(config: Config) -> str:
     """Builds a Docker image from the current repository and pushes it to the package registry.
@@ -32,7 +33,11 @@ def build_image(config: Config) -> str:
     wheel_path = None
     if os.path.exists(f"{repo_dir}/setup.py") or os.path.exists(f"{repo_dir}/pyproject.toml"):
         print("Building Python wheel from setup.py or pyproject.toml...")
-        subprocess.run([sys.executable, "-m", "build", "--outdir", "dist"], check=True)
+        try:
+            subprocess.run([sys.executable, "-m", "build", "--outdir", "dist"], check=True, capture_output=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Docker build failed:\n{e.stdout.decode()}\n{e.stderr.decode()}")
+            raise
         wheel_path = next(Path("dist").glob("*.whl"), None)
         if wheel_path:
             print(f"Wheel created at: {wheel_path}")
@@ -44,7 +49,7 @@ def build_image(config: Config) -> str:
     if not os.path.exists(f"{repo_dir}/run.py"):
         raise ValueError("run.py is required to execute the script sequence. Add it to your repo.")
     with open("Dockerfile", "w") as f:
-        f.write("FROM python:3.11-slim\n")
+        f.write("FROM python:3.13-slim\n")
         f.write("WORKDIR /app\n")
         f.write("RUN apt-get update && apt-get install -y git\n")
         if os.path.exists("requirements.txt"):
