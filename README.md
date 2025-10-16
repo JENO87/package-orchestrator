@@ -1,121 +1,206 @@
-Title: package-orchestrator
+package-orchestrator
 
 Version: 0.1.0
 License: MIT
-Description: A generic Python package to simplify packaging repositories with sequential scripts into a Docker image and push it to any registry (e.g., GitHub Packages, GCP Artifact Registry, Docker Hub). This repo eliminates repetitive packaging code and focuses solely on packaging.
+Description: A Python package to simplify packaging repositories with sequential scripts into Docker images and pushing them to any registry (e.g., GitHub Packages, GCP Artifact Registry, Docker Hub). Eliminates repetitive packaging code.
 
 Overview
 --------
-package-orchestrator is a Python package you can install in any repository to package it into a Docker image. It assumes the repo contains sequential scripts executed via a run.py file and builds a containerized version, including a Python wheel for importing into other repos (e.g., a deploy repo). The package is pushed to a specified registry, with deployment handled separately.
+
+package-orchestrator is a Python tool to package repositories into Docker images for deployment (e.g., Google Cloud Run). It requires a run.py to execute sequential scripts and a pyproject.toml to define the package and dependencies. The resulting wheel and Docker image are pushed to a specified registry.
 
 Requirements
 ------------
-- Python: 3.13 or higher
-- Docker: Installed and running locally (verify with docker --version)
-- pip: For installing the package
+
+- Python 3.13+
+- Docker installed and running (docker --version)
+- pip for installing dependencies
+- Access to a Docker registry
 
 Installation
 ------------
-To use package-orchestrator in your target repository, install it as a dependency:
 
-  pip install git+https://github.com/JENO87/package-orchestrator.git
+Install package-orchestrator in your repository:
 
-This installs the package and its dependencies (e.g., pydantic, python-dotenv).
+    pip install git+https://github.com/JENO87/package-orchestrator.git
+
+This installs dependencies (build, loguru).
 
 Usage
 -----
-### 1. Prepare Your Repository
-- Ensure your repo has a compatible structure:
-  - Required: run.py to execute the sequence of scripts (see example below).
-  - Required: pyproject.toml to define your Python package for a wheel (see template below; needed for importing into other repos).
-  - Optional: requirements.txt for dependencies (e.g., libraries used by your scripts).
-- Example my-script-repo structure:
-  my-script-repo/
-    run.py            # Executes the script sequence (required)
-    script1.py        # First script in sequence
-    script2.py        # Second script in sequence
-    pyproject.toml    # Handles versioning (tags), wheel and lists dependencies (required)
-    README.md
 
-- Example run.py:
-  Create run.py in your target repo to orchestrate your script sequence:
-    # run.py
-    import script1
-    import script2
+1. Prepare Your Repository
 
-    def main():
-        script1.process_data()  # Example function
-        script2.generate_report()  # Example function
+   - Required:
+     - run.py: Executes the script sequence.
+     - pyproject.toml: Defines the package and dependencies.
+   - Optional:
+     - Additional scripts or modules used by run.py.
 
-    if __name__ == "__main__":
-        main()
+   - Example mock-script-repo structure:
+        mock-script-repo/
+          run.py            # Executes script sequence
+          mock_script_repo/
+            __init__.py     # Makes it a Python package
+            script1.py      # Example script
+            script2.py      # Example script
+          pyproject.toml    # Defines package and dependencies
+          README.md
 
-- Template for pyproject.toml (Required):
-  Create pyproject.toml in your target repo with the following content, customizing as needed:
-    from setuptools import setup, find_packages
+   - Example run.py:
+        from mock_script_repo import script1, script2
 
-    [project]
-    name = "mock-script-repo"
-    version = "0.1.0"
-    dependencies = [
-       "pandas>=2.0.0",
-       "setuptools>=61.0",
-       "build"
-    ]
-    authors = [{name = "Jens Norell"}]
-    description = "A script sequence application"
+        def main():
+            script1.process_data()  # Example function
+            script2.generate_report()  # Example function
 
-    [build-system]
-    requires = ["hatchling"]
-    build-backend = "hatchling.build"
-    
-  - Notes: Replace my-script-repo with your package name and adjust your dependencies. This is required to generate a wheel for importing into your deploy repo.
+        if __name__ == "__main__":
+            main()
 
-### 2. Set Up Authentication
-- For any registry, set up authentication based on the registry type:
-  - GitHub Packages: Create a Personal Access Token (PAT) with repo scope:
-    1. Go to GitHub > Settings > Developer Settings > Personal Access Tokens > Generate New Token.
-    2. Copy the token and set it as an environment variable:
-       export GITHUB_PAT=your-token-here
-    - Or add it to a .env file:
-      GITHUB_PAT=your-token-here
-  - GCP Artifact Registry: Use gcloud authentication (run gcloud auth configure-docker before packaging).
-  - Docker Hub: Log in with docker login and set DOCKER_PASSWORD:
-    export DOCKER_PASSWORD=your-password
-- The CLI will attempt to authenticate using the appropriate environment variable or skip if not needed.
+   - Example pyproject.toml:
+        [project]
+        name = "mock-script-repo"
+        version = "0.1.0"
+        requires-python = ">=3.13"
+        dependencies = ["pandas>=2.0.0"]
+        authors = [{name = "Your Name"}]
+        description = "A script sequence application"
 
-### 3. Package the Repository
-- In your repository's root directory, run the CLI command:
-  python -m package --registry <your-registry> --service-name my-script
-  - --registry: The package registry URI where the Docker image will be pushed (e.g., ghcr.io/JENO87/package-orchestrator, us-central1-docker.pkg.dev/your-project-id/ml-repo, or docker.io/your-username).
-  - --service-name: The name of the service/image (e.g., my-script; defaults to my-service).
+        [build-system]
+        requires = ["hatchling"]
+        build-backend = "hatchling.build"
 
-### 4. Verify the Package
-- The process builds a Python wheel (required via pyproject.toml) and a Docker image, then pushes it to the specified registry.
-- Check your registry for the image:
-  - GitHub Packages: https://github.com/JENO87/package-orchestrator/packages/container/package-orchestrator/my-script
-  - GCP Artifact Registry: Use gcloud artifacts repositories list and browse the UI.
-  - Docker Hub: https://hub.docker.com/r/your-username/my-script
-- The image will be available at <your-registry>/my-script:latest, and the wheel can be imported (e.g., import my-script-repo in your deploy repo).
+        [tool.hatch.build.targets.wheel]
+        packages = ["mock_script_repo"]
 
-### 5. Create Additional Packages
-- To package other repositories with sequential scripts:
-  1. Create a new directory for each repo (e.g., my-other-script-repo).
-  2. Add run.py with your script sequence logic.
-  3. Add pyproject.toml with the appropriate package name and dependencies.
-  4. Navigate to the new repo directory and run:
-     python -m package_orchestrator package --registry <your-registry> --service-name my-other-script
-  - Repeat for each new repo, adjusting registry and service-name as needed. Ensure each pyproject.toml has a unique package name to avoid conflicts when importing.
+2. Set Up Authentication
+
+   - GitHub Packages:
+     1. Create a Personal Access Token (PAT) with repo scope in GitHub Settings.
+     2. Set environment variable:
+            export GITHUB_PAT=your-token-here
+
+   - GCP Artifact Registry:
+     Run:
+            gcloud auth configure-docker <region>-docker.pkg.dev
+     Example:
+            gcloud auth configure-docker us-central1-docker.pkg.dev
+
+   - Docker Hub:
+     Log in with:
+            docker login
+     Or set:
+            export DOCKER_PASSWORD=your-password
+
+3. Package the Repository
+
+   Build and push the Docker image:
+
+   - For GitHub Packages:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry ghcr.io/JENO87/my-packages --service-name mock-script
+
+   - For GCP Artifact Registry:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry <region>-docker.pkg.dev/<project-id>/<repository-name> --service-name mock-script
+     Example:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry us-central1-docker.pkg.dev/my-project/ml-repo --service-name mock-script
+
+   - For Docker Hub:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry docker.io/<your-username> --service-name mock-script
+
+   - --registry: Registry URI (e.g., ghcr.io/JENO87/my-packages, us-central1-docker.pkg.dev/my-project/ml-repo, docker.io/your-username).
+   - --service-name: Image name (e.g., mock-script).
+
+4. Verify the Package
+
+   - The process builds a wheel (dist/mock-script-repo-0.1.0-py3-none-any.whl) and a Docker image (e.g., ghcr.io/JENO87/my-packages/mock-script:0.1.0 or us-central1-docker.pkg.dev/my-project/ml-repo/mock-script:0.1.0).
+   - Check the registry:
+     - GitHub Packages: https://github.com/JENO87/my-packages/packages
+     - GCP Artifact Registry: Use gcloud artifacts repositories list or check the GCP Console.
+     - Docker Hub: https://hub.docker.com/r/your-username/mock-script.
+
+5. Create Additional Packages
+
+   For other repositories:
+   1. Create a new repo with run.py and pyproject.toml.
+   2. Run:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry <your-registry> --service-name <new-service-name>
+      Replace <your-registry> with the appropriate URI (e.g., ghcr.io/JENO87/my-packages, us-central1-docker.pkg.dev/my-project/ml-repo, docker.io/your-username).
+
+Steps to Set Up and Run
+-----------------------
+
+1. Create the directory structure:
+   - Create mock-script-repo/ as the root.
+   - Create mock_script_repo/ with an empty __init__.py.
+   - Add script1.py and script2.py to mock_script_repo/.
+   - Add run.py and pyproject.toml to the root.
+
+        mock-script-repo/
+          run.py
+          mock_script_repo/
+            __init__.py
+            script1.py
+            script2.py
+          pyproject.toml
+          README.md
+
+2. Install dependencies:
+        pip install uv build loguru hatchling
+
+3. Set up authentication:
+   - GitHub Packages:
+        export GITHUB_PAT=your-token-here
+   - GCP Artifact Registry:
+        gcloud auth configure-docker <region>-docker.pkg.dev
+     Example:
+        gcloud auth configure-docker us-central1-docker.pkg.dev
+   - Docker Hub:
+        docker login
+
+4. Build and package:
+   - For GitHub Packages:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry ghcr.io/JENO87/my-packages --service-name mock-script
+   - For GCP Artifact Registry:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry <region>-docker.pkg.dev/<project-id>/<repository-name> --service-name mock-script
+     Example:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry us-central1-docker.pkg.dev/my-project/ml-repo --service-name mock-script
+   - For Docker Hub:
+        uv run python -m build
+        uv run python -m package_orchestrator.cli --registry docker.io/<your-username> --service-name mock-script
+
+Expected Output
+--------------
+
+- A wheel in dist/mock-script-repo-0.1.0-py3-none-any.whl.
+- A Docker image at the specified registry (e.g., ghcr.io/JENO87/my-packages/mock-script:0.1.0, us-central1-docker.pkg.dev/my-project/ml-repo/mock-script:0.1.0, or docker.io/your-username/mock-script:0.1.0).
+- The Dockerfile will look like:
+        FROM python:3.13-slim
+        WORKDIR /app
+        RUN apt-get update && apt-get install -y git
+        COPY mock-script-repo-0.1.0-py3-none-any.whl .
+        RUN pip install mock-script-repo-0.1.0-py3-none-any.whl
+        COPY run.py .
+        CMD ["python", "run.py"]
 
 Troubleshooting
---------------
-- Docker Not Found: Ensure Docker is installed and running (docker --version).
-- Authentication Failed: Verify the correct environment variable is set (e.g., GITHUB_PAT, DOCKER_PASSWORD) or use gcloud auth for GCP.
-- No Wheel Built: Ensure pyproject.toml exists and is correctly configured.
-- Entrypoint Issues: Ensure run.py exists and executes your script sequence. Add dependencies to requirements.txt if needed.
+---------------
+
+- Docker Not Found: Verify Docker is running (docker --version).
+- Authentication Failed: Check environment variables (GITHUB_PAT, DOCKER_PASSWORD) or gcloud auth.
+- No Wheel Built: Ensure pyproject.toml is valid and includes [tool.hatch.build.targets.wheel] with packages = ["mock_script_repo"].
+- Entrypoint Issues: Confirm run.py exists and imports correctly from mock_script_repo.
 
 Contributing
 ------------
+
 - Fork the repository.
 - Create a branch (git checkout -b feature/your-feature).
 - Commit changes (git commit -m "Add your feature").
@@ -123,8 +208,10 @@ Contributing
 
 License
 -------
-MIT License - See the [LICENSE] file for details.
+
+MIT License - See the [LICENSE] file.
 
 Support
 -------
-For issues, use the [GitHub Issues] page[](https://github.com/JENO87/package-orchestrator/issues).
+
+File issues at [GitHub Issues](https://github.com/JENO87/package-orchestrator/issues).
