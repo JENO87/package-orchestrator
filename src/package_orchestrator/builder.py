@@ -1,13 +1,15 @@
 """Builder module for package-orchestrator.
 
-This module packages the current repository into a Docker image and pushes it to a specified registry.
-It builds a wheel if setup.py exists and uses run.py to execute sequential scripts.
+This module packages the current repository into a Docker image and pushes it to a specified registry. It builds a wheel
+if setup.py exists and uses run.py to execute sequential scripts.
 """
-import sys
-import subprocess
+
 import os
-from package_orchestrator.config import Config
+import subprocess
 from pathlib import Path
+
+from package_orchestrator.config import Config
+
 
 def build_image(config: Config) -> str:
     """Builds a Docker image from the current repository and pushes it to the package registry.
@@ -15,10 +17,12 @@ def build_image(config: Config) -> str:
     Args:
         config: Config object with registry and service details.
 
-    Returns:
+    Returns
+    -------
         str: The full image URI (e.g., 'ghcr.io/JENO87/package-orchestrator/my-service:latest').
 
-    Raises:
+    Raises
+    ------
         subprocess.CalledProcessError: If build or push fails.
         FileNotFoundError: If required files are missing.
         ValueError: If run.py is not found.
@@ -36,42 +40,24 @@ def build_image(config: Config) -> str:
         else:
             print("No wheel file generated; using raw files.")
 
-    # Generate Dockerfile with run.py as entrypoint
+    # Generate Dockerfile
     print("Creating Dockerfile...")
     if not os.path.exists(f"{repo_dir}/run.py"):
         raise ValueError("run.py is required to execute the script sequence. Add it to your repo.")
-    dockerfile = f"""
-    FROM python:3.9-slim
-    WORKDIR /app
-    """
-    if os.path.exists("requirements.txt"):
-        dockerfile += """
-        COPY requirements.txt .
-        RUN pip install --no-cache-dir -r requirements.txt
-        """
-    if wheel_path:
-        dockerfile += f"COPY {wheel_path} .\nRUN pip install {wheel_path.name}\n"
-    else:
-        dockerfile += "COPY . .\n"
-    dockerfile += """
-    COPY run.py .
-    CMD ["python", "run.py"]
-    """
     with open("Dockerfile", "w") as f:
-        f.write(dockerfile)
+        f.write("FROM python:3.9-slim\n")
+        f.write("WORKDIR /app\n")
+        if os.path.exists("requirements.txt"):
+            f.write("COPY requirements.txt .\n")
+            f.write("RUN pip install --no-cache-dir -r requirements.txt\n")
+        if wheel_path:
+            f.write(f"COPY {os.path.abspath(wheel_path)} .\n")  # Use absolute path
+            f.write(f"RUN pip install {os.path.basename(wheel_path)}\n")
+        f.write("COPY run.py .\n")
+        f.write('CMD ["python", "run.py"]\n')
 
-    # Authenticate with the package registry based on URI
+    # Build and push Docker image
     image_uri = f"{config.package_registry_url}/{config.service_name}:latest"
-    registry_host = config.package_registry_url.split("/")[0]  # e.g., 'ghcr.io', 'us-central1-docker.pkg.dev', 'docker.io'
-    if registry_host == "ghcr.io" and os.environ.get("GITHUB_PAT"):
-        print("Authenticating with GitHub Packages...")
-        subprocess.run(["docker", "login", registry_host, "-u", "JENO87", "-p", os.environ.get("GITHUB_PAT")], check=True)
-    elif registry_host == "docker.io" and os.environ.get("DOCKER_PASSWORD"):
-        print("Authenticating with Docker Hub...")
-        subprocess.run(["docker", "login", "-u", os.environ.get("DOCKER_USERNAME", "your-username"), "-p", os.environ.get("DOCKER_PASSWORD")], check=True)
-    # GCP assumes pre-configured gcloud authentication
-
-    # Build and push the Docker image
     print(f"Building Docker image: {image_uri}")
     subprocess.run(["docker", "build", "-t", image_uri, "."], check=True)
     print(f"Pushing Docker image to {config.package_registry_url}...")

@@ -1,15 +1,18 @@
 import os
-import shutil
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
+
 from package_orchestrator.builder import build_image
 from package_orchestrator.config import Config
+
 
 @pytest.fixture
 def temp_dir(tmp_path):
     os.chdir(tmp_path)
     yield tmp_path
     os.chdir(tmp_path.parent)
+
 
 def test_build_image_success(temp_dir):
     # Setup mock repo
@@ -27,11 +30,12 @@ def test_build_image_success(temp_dir):
 
     assert image_uri == "test-registry/test-service:latest"
     assert os.path.exists("Dockerfile")
-    with open("Dockerfile", "r") as f:
+    with open("Dockerfile") as f:
         content = f.read()
         assert "COPY run.py" in content
-        assert "CMD [\"python\", \"run.py\"]" in content
+        assert 'CMD ["python", "run.py"]' in content
     assert mock_run.call_count > 0
+
 
 def test_build_image_no_runpy(temp_dir):
     with open("requirements.txt", "w") as f:
