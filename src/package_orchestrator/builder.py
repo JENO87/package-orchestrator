@@ -3,6 +3,7 @@
 This module packages the current repository into a Docker image and pushes it to a specified registry.
 It builds a wheel if setup.py exists and uses run.py to execute sequential scripts.
 """
+import sys
 import subprocess
 import os
 from package_orchestrator.config import Config
@@ -28,7 +29,7 @@ def build_image(config: Config) -> str:
     wheel_path = None
     if os.path.exists(f"{repo_dir}/setup.py") or os.path.exists(f"{repo_dir}/pyproject.toml"):
         print("Building Python wheel from setup.py or pyproject.toml...")
-        subprocess.run(["python", "-m", "build", "--outdir", "dist"], check=True)
+        subprocess.run([sys.executable, "-m", "build", "--outdir", "dist"], check=True)
         wheel_path = next(Path("dist").glob("*.whl"), None)
         if wheel_path:
             print(f"Wheel created at: {wheel_path}")
