@@ -64,7 +64,7 @@ pre-commit:
 > if not exist .gitattributes echo * text=lf > .gitattributes
 > if exist src icacls src /grant %USERNAME%:F /T
 > if exist tests icacls tests /grant %USERNAME%:F /T
-> powershell -Command "Get-ChildItem -Recurse -File -Include *.py,*.yaml | ForEach-Object { (Get-Content $_.FullName) -replace \"`r`n\", \"`n\" | Set-Content $_.FullName }"
+> powershell -Command "Get-ChildItem -Recurse -File -Include *.py,*.yaml | ForEach-Object { (Get-Content $_.FullName) -replace '\r\n', '\n' | Set-Content $_.FullName }"
 > uv run ruff check . --fix
 > uv run pre-commit run end-of-file-fixer --all-files --show-diff-on-failure
 > uv run pre-commit run trailing-whitespace --all-files --show-diff-on-failure
