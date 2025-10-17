@@ -1,27 +1,40 @@
 """Builder module for package-orchestrator.
-This module packages the current repository into a Docker image and pushes it to a specified registry. It builds a wheel
-if setup.py exists and uses run.py to execute sequential scripts.
+
+This module packages the current repository into a Docker image and
+pushes it to a specified registry. It builds a wheel if setup.py exists
+and uses run.py to execute sequential scripts.
+
 """
-import sys
+
+import importlib.metadata
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
-from typing import Optional
-from package_orchestrator.config import Config
+
 from loguru import logger
-import importlib.metadata
+
+from package_orchestrator.config import Config
+
 
 def build_image(config: Config) -> str:
-    """Builds a Docker image from the current repository and pushes it to the package registry.
+    """Builds a Docker image from the current repository and pushes it to the
+    package registry.
+
     Args:
         config: Config object with registry and service details.
-    Returns:
+
+    Returns
+    -------
         str: The full image URI (e.g., 'ghcr.io/JENO87/package-orchestrator/my-service:1.0.0').
-    Raises:
+
+    Raises
+    ------
         subprocess.CalledProcessError: If build or push fails.
         FileNotFoundError: If required files are missing.
         ValueError: If run.py is not found or version cannot be determined.
+
     """
     repo_dir = "."
 
@@ -34,7 +47,7 @@ def build_image(config: Config) -> str:
             # Extract version from built wheel metadata
             wheel_path = next(Path("dist").glob("*.whl"), None)
             if wheel_path:
-                version = importlib.metadata.distribution(wheel_path.stem.split('-')[0]).version
+                version = importlib.metadata.distribution(wheel_path.stem.split("-")[0]).version
                 print(f"Version extracted: {version}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Wheel build failed:\n{e.stdout.decode()}\n{e.stderr.decode()}")
@@ -53,16 +66,13 @@ def build_image(config: Config) -> str:
         f.write("FROM python:3.13-slim\n")
         f.write("WORKDIR /app\n")
         f.write("RUN apt-get update && apt-get install -y git\n")
-        if os.path.exists("requirements.txt"):
-            f.write("COPY requirements.txt .\n")
-            f.write("RUN pip install --no-cache-dir -r requirements.txt\n")
         if wheel_path:
             wheel_filename = os.path.basename(wheel_path)
             shutil.copy(wheel_path, wheel_filename)
             f.write(f"COPY {wheel_filename} .\n")
             f.write(f"RUN pip install {wheel_filename}\n")
         f.write("COPY run.py .\n")
-        f.write("CMD [\"python\", \"run.py\"]\n")
+        f.write('CMD ["python", "run.py"]\n')
 
     # Build and push Docker image with version tag
     image_uri = f"{config.package_registry_url}/{config.service_name}:{version}"

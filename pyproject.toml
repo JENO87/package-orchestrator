@@ -93,7 +93,7 @@ exclude = ["notebooks"]
 select = ["E", "D", "F", "UP", "SIM", "I", "W"]
 ignore = [
     "D100", "D101", "D102", "D103", "D104", "D106",
-    "D401",
+    "D401","D205"
 ]
 [tool.ruff.lint.isort]
 known-first-party = ["package_orchestrator"]
