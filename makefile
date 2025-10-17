@@ -64,14 +64,12 @@ pre-commit:
 > if not exist .gitattributes echo * text=lf > .gitattributes
 > if exist src icacls src /grant %USERNAME%:F /T
 > if exist tests icacls tests /grant %USERNAME%:F /T
-> powershell -Command "Get-ChildItem -Recurse -File -Include *.py,*.yaml | ForEach-Object { (Get-Content -Path $_.FullName -Raw) -replace '\r\n', '\n' | Set-Content -Path $_.FullName }"
 > uv run ruff check . --fix
 > uv run pre-commit run end-of-file-fixer --all-files --show-diff-on-failure
 > uv run pre-commit run trailing-whitespace --all-files --show-diff-on-failure
 > uv run pre-commit run ruff --all-files --hook-stage manual
 > uv run pre-commit run ruff-format --all-files --hook-stage manual
 > uv run pre-commit run --all-files --hook-stage manual
-> powershell -Command "if ((Get-Content src\package_orchestrator\builder.py -Raw | Select-String -Pattern '\"\"\"Builds a Docker image.*\n\s*\n\s*Args:').Count -eq 0) { Write-Output 'D205 fix reverted in builder.py'; exit 1 }"
 
 build-package:
 >uv build
